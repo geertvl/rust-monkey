@@ -13,7 +13,9 @@ pub enum TokenType {
   Lbrace,
   Rbrace,
   Function,
-  Let
+  Let,
+  Comma,
+  SemiColon
 } 
 
 impl PartialEq for TokenType {
@@ -23,3 +25,8 @@ impl PartialEq for TokenType {
 }
 
 impl Eq for TokenType {}
+
+pub struct Token {
+  pub token_type: TokenType,
+  pub literal: char,
+}
