@@ -15,7 +15,18 @@ pub enum TokenType {
   Function,
   Let,
   Comma,
-  SemiColon
+  SemiColon,
+  Minus,
+  Bang,
+  Asterisk,
+  Slash,
+  Lt,
+  Gt,
+  True,
+  False,
+  If,
+  Else,
+  Return,
 } 
 
 impl PartialEq<TokenType> for Token {
@@ -42,6 +53,11 @@ impl Keywords {
     match ident {
       "fn" => TokenType::Function,
       "let" => TokenType::Let,
+      "true" => TokenType::True,
+      "false" => TokenType::False,
+      "if" => TokenType::If,
+      "else" => TokenType::Else,
+      "return" => TokenType::Return,
       _ => TokenType::Ident,
     }
   }

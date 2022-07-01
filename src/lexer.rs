@@ -58,38 +58,62 @@ impl Lexer {
   }
 
   fn skip_whitespace(&mut self) {
-    while self.ch == ' ' || self.ch == '\n' || self.ch == '\r' {
+    while self.ch == ' ' || self.ch == '\t' || self.ch == '\n' || self.ch == '\r' {
       self.read_char();
     }
   }
 
-  fn next_token(&mut self) -> Token {
+  pub fn next_token(&mut self) -> Token {
     self.skip_whitespace();
 
     let tok = match self.ch {
-        ' ' => Token {
-            token_type: TokenType::Assign,
-            literal: self.ch.to_string(),
+        '=' => Token {
+          token_type: TokenType::Assign,
+          literal: self.ch.to_string(),
         },
         ';' => Token {
-            token_type: TokenType::SemiColon,
-            literal: self.ch.to_string(),
+          token_type: TokenType::SemiColon,
+          literal: self.ch.to_string(),
         },
         '(' => Token {
-            token_type: TokenType::Lparen,
-            literal: self.ch.to_string(),
+          token_type: TokenType::Lparen,
+          literal: self.ch.to_string(),
         },
         ')' => Token {
-            token_type: TokenType::Rparen,
-            literal: self.ch.to_string(),
+          token_type: TokenType::Rparen,
+          literal: self.ch.to_string(),
         },
         ',' => Token {
-            token_type: TokenType::Comma,
-            literal: self.ch.to_string(),
+          token_type: TokenType::Comma,
+          literal: self.ch.to_string(),
         },
         '+' => Token {
-            token_type: TokenType::Plus,
-            literal: self.ch.to_string(),
+          token_type: TokenType::Plus,
+          literal: self.ch.to_string(),
+        },
+        '-' => Token {
+          token_type: TokenType::Minus,
+          literal: self.ch.to_string(),
+        },
+        '!' => Token {
+          token_type: TokenType::Bang,
+          literal: self.ch.to_string(),
+        },
+        '/' => Token {
+          token_type: TokenType::Slash,
+          literal: self.ch.to_string(),
+        },
+        '*' => Token {
+          token_type: TokenType::Asterisk,
+          literal: self.ch.to_string(),
+        },
+        '<' => Token {
+          token_type: TokenType::Lt,
+          literal: self.ch.to_string(),
+        },
+        '>' => Token {
+          token_type: TokenType::Gt,
+          literal: self.ch.to_string(),
         },
         '{' => Token {
             token_type: TokenType::Lbrace,
@@ -99,15 +123,20 @@ impl Lexer {
             token_type: TokenType::Rbrace,
             literal: self.ch.to_string(),
         },
+        '\0' => Token {
+          token_type: TokenType::Eof,
+          literal: String::from(""),
+        }, 
         _ => {
             if is_letter(self.ch) {
                 let literal = self.read_identifier();
-                Token {
-                    token_type: Keywords::lookup_ident(literal.as_str()),
+                let token_type = Keywords::lookup_ident(literal.as_str());
+                return Token {
+                    token_type: token_type,
                     literal: literal,
                 }
             } else if is_digit(self.ch) {
-                Token {
+                return Token {
                     token_type: TokenType::Int,
                     literal: self.read_number(),
                 }
@@ -126,7 +155,6 @@ impl Lexer {
 
 #[cfg(test)]
 mod tests {
-  use std::collections::HashMap;
   use crate::token::TokenType;
   use crate::lexer::Lexer;
 
@@ -154,12 +182,20 @@ mod tests {
     
     let add = fn(x, y) {
       x + y;
-    );
+    };
     
     let result = add(five, ten);
+    !-/*5;
+    5 < 10 > 5;
+
+    if (5 < 10) {
+        return true;
+    } else {
+        return false;
+    }
     ";
 
-    let test = HashMap::from([
+    let test = vec![
       (TokenType::Let, "let"),
       (TokenType::Ident, "five"),
       (TokenType::Assign, "="),
@@ -196,15 +232,44 @@ mod tests {
       (TokenType::Ident, "ten"),
       (TokenType::Rparen, ")"),
       (TokenType::SemiColon, ";"),
+      (TokenType::Bang, "!"),
+      (TokenType::Minus, "-"),
+      (TokenType::Slash, "/"),
+      (TokenType::Asterisk, "*"),
+      (TokenType::Int, "5"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::Int, "5"),
+      (TokenType::Lt, "<"),
+      (TokenType::Int, "10"),
+      (TokenType::Gt, ">"),
+      (TokenType::Int, "5"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::If, "if"),
+      (TokenType::Lparen, "("),
+      (TokenType::Int, "5"),
+      (TokenType::Lt, "<"),
+      (TokenType::Int, "10"),
+      (TokenType::Rparen, ")"),
+      (TokenType::Lbrace, "{"),
+      (TokenType::Return, "return"),
+      (TokenType::True, "true"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::Rbrace, "}"),
+      (TokenType::Else, "else"),
+      (TokenType::Lbrace, "{"),
+      (TokenType::Return, "return"),
+      (TokenType::False, "false"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::Rbrace, "}"),
       (TokenType::Eof, "")
-    ]);
+    ];
 
     let mut lexer = Lexer::new(input.to_string());
 
-    for (expectedType, expectedLiteral) in &test {
+    for (expected_type, expected_literal) in &test {
       let tok = lexer.next_token();
-      assert_eq!(tok.token_type, expectedType);
-      assert_eq!(tok.literal, expectedLiteral);
+      assert_eq!(tok.token_type, *expected_type);      
+      assert_eq!(tok.literal, expected_literal.to_string());
     }
   }
 } 
