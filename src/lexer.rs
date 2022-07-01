@@ -63,13 +63,35 @@ impl Lexer {
     }
   }
 
+  fn peek_char(&self) -> char {
+    let length = convert_u32(self.input.len());
+    if self.read_position >= length {
+      '\0'
+    } else {
+      let pos = convert_usize(self.read_position);
+      self.input.chars().nth(pos).unwrap()
+    }
+  }
+
   pub fn next_token(&mut self) -> Token {
     self.skip_whitespace();
 
     let tok = match self.ch {
-        '=' => Token {
-          token_type: TokenType::Assign,
-          literal: self.ch.to_string(),
+      '=' => {
+        if self.peek_char() == '=' {
+          let ch = self.ch;
+          self.read_char();
+          let literal = format!("{}{}", ch, self.ch);
+          Token {
+            token_type: TokenType::Eq,
+            literal: literal
+          }
+        } else {
+          Token {
+            token_type: TokenType::Assign,
+            literal: self.ch.to_string(),
+          }
+        }
         },
         ';' => Token {
           token_type: TokenType::SemiColon,
@@ -95,9 +117,21 @@ impl Lexer {
           token_type: TokenType::Minus,
           literal: self.ch.to_string(),
         },
-        '!' => Token {
-          token_type: TokenType::Bang,
-          literal: self.ch.to_string(),
+        '!' => {
+          if self.peek_char() == '=' {
+            let ch = self.ch;
+            self.read_char();
+            let literal = format!("{}{}", ch, self.ch);
+            Token {
+              token_type: TokenType::NotEq,
+              literal: literal,
+            }
+          } else {
+            Token {
+              token_type: TokenType::Bang,
+              literal: self.ch.to_string(),
+            }
+          }
         },
         '/' => Token {
           token_type: TokenType::Slash,
@@ -116,36 +150,36 @@ impl Lexer {
           literal: self.ch.to_string(),
         },
         '{' => Token {
-            token_type: TokenType::Lbrace,
-            literal: self.ch.to_string(),
+          token_type: TokenType::Lbrace,
+          literal: self.ch.to_string(),
         },
         '}' => Token {
-            token_type: TokenType::Rbrace,
-            literal: self.ch.to_string(),
+          token_type: TokenType::Rbrace,
+          literal: self.ch.to_string(),
         },
         '\0' => Token {
           token_type: TokenType::Eof,
           literal: String::from(""),
         }, 
         _ => {
-            if is_letter(self.ch) {
-                let literal = self.read_identifier();
-                let token_type = Keywords::lookup_ident(literal.as_str());
-                return Token {
-                    token_type: token_type,
-                    literal: literal,
-                }
-            } else if is_digit(self.ch) {
-                return Token {
-                    token_type: TokenType::Int,
-                    literal: self.read_number(),
-                }
-            } else {
-                Token {
-                    token_type: TokenType::Illegal,
-                    literal: self.ch.to_string(),
-                }
+          if is_letter(self.ch) {
+            let literal = self.read_identifier();
+            let token_type = Keywords::lookup_ident(literal.as_str());
+            return Token {
+                token_type: token_type,
+                literal: literal,
             }
+          } else if is_digit(self.ch) {
+            return Token {
+                token_type: TokenType::Int,
+                literal: self.read_number(),
+            }
+          } else {
+            Token {
+                token_type: TokenType::Illegal,
+                literal: self.ch.to_string(),
+            }
+          }
         },
     };
     self.read_char();
@@ -193,6 +227,9 @@ mod tests {
     } else {
         return false;
     }
+
+    10 == 10;
+    10 != 9;
     ";
 
     let test = vec![
@@ -261,6 +298,14 @@ mod tests {
       (TokenType::False, "false"),
       (TokenType::SemiColon, ";"),
       (TokenType::Rbrace, "}"),
+      (TokenType::Int, "10"),
+      (TokenType::Eq, "=="),
+      (TokenType::Int, "10"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::Int, "10"),
+      (TokenType::NotEq, "!="),
+      (TokenType::Int, "9"),
+      (TokenType::SemiColon, ";"),
       (TokenType::Eof, "")
     ];
 

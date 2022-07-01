@@ -27,6 +27,8 @@ pub enum TokenType {
   If,
   Else,
   Return,
+  Eq,
+  NotEq,
 } 
 
 impl PartialEq<TokenType> for Token {
