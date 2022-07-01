@@ -1,4 +1,4 @@
-
+use std::fmt;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum TokenType {
@@ -46,6 +46,15 @@ impl PartialEq<Token> for TokenType {
 pub struct Token {
   pub token_type: TokenType,
   pub literal: String,
+}
+
+impl fmt::Debug for Token {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("Token")
+      .field("token_type", &self.token_type)
+      .field("literal", &self.token_type)
+      .finish()
+  }
 }
 
 pub struct Keywords {}
