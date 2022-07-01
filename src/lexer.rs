@@ -1,10 +1,11 @@
-use crate::token::{Token, TokenType};
-
+use crate::token::{Token, TokenType, Keywords};
+use crate::support::{convert_u32, convert_usize, is_letter, is_digit};
+use substring::Substring;
 
 pub struct Lexer {
   pub input: String,
-  pub position: i32,
-  pub read_position: i32,
+  pub position: u32,
+  pub read_position: u32,
   pub ch: char,
 }
 
@@ -21,24 +22,105 @@ impl Lexer {
     l
   }
 
-  pub fn read_char(&mut self) {
-    if self.read_position >= self.input.len().try_into().unwrap() {
-      self.ch = '\0'
+  fn read_char(&mut self) {
+    let length = convert_u32(self.input.len());
+    if self.read_position >= length {
+      self.ch = '\0';
     } else {
-      // TODO: should this be in a separate function that checks the Option?
-      self.ch = self.input.chars().nth(self.read_position.try_into().unwrap()).unwrap();
+      let pos = convert_usize(self.read_position);
+      self.ch = self.input.chars().nth(pos).unwrap();
     }
+
     self.position = self.read_position;
     self.read_position += 1;
   }
 
-  pub fn next_token(&self) -> Token {
-    match self.ch {
-      ' ' => Token { token_type: TokenType::Assign, literal: self.ch },
-      ';' => Token { token_type: TokenType::SemiColon, literal: self.ch },
-      // TODO : literal should be an empty char
-      _   => Token { token_type: TokenType::Eof, literal: '\0' }
+  fn read_identifier(&mut self) -> String {
+    let position = self.position;
+    while is_letter(self.ch) {
+      self.read_char();
     }
+
+    let start_pos = convert_usize(position);
+    let end_pos = convert_usize(self.position);
+    self.input.substring(start_pos, end_pos).to_string()
+  }
+
+  fn read_number(&mut self) -> String {
+    let position = self.position;
+    while is_digit(self.ch) {
+      self.read_char();
+    }
+
+    let start_pos = convert_usize(position);
+    let end_pos = convert_usize(self.position);
+    self.input.substring(start_pos, end_pos).to_string()
+  }
+
+  fn skip_whitespace(&mut self) {
+    while self.ch == ' ' || self.ch == '\n' || self.ch == '\r' {
+      self.read_char();
+    }
+  }
+
+  fn next_token(&mut self) -> Token {
+    self.skip_whitespace();
+
+    let tok = match self.ch {
+        ' ' => Token {
+            token_type: TokenType::Assign,
+            literal: self.ch.to_string(),
+        },
+        ';' => Token {
+            token_type: TokenType::SemiColon,
+            literal: self.ch.to_string(),
+        },
+        '(' => Token {
+            token_type: TokenType::Lparen,
+            literal: self.ch.to_string(),
+        },
+        ')' => Token {
+            token_type: TokenType::Rparen,
+            literal: self.ch.to_string(),
+        },
+        ',' => Token {
+            token_type: TokenType::Comma,
+            literal: self.ch.to_string(),
+        },
+        '+' => Token {
+            token_type: TokenType::Plus,
+            literal: self.ch.to_string(),
+        },
+        '{' => Token {
+            token_type: TokenType::Lbrace,
+            literal: self.ch.to_string(),
+        },
+        '}' => Token {
+            token_type: TokenType::Rbrace,
+            literal: self.ch.to_string(),
+        },
+        _ => {
+            if is_letter(self.ch) {
+                let literal = self.read_identifier();
+                Token {
+                    token_type: Keywords::lookup_ident(literal.as_str()),
+                    literal: literal,
+                }
+            } else if is_digit(self.ch) {
+                Token {
+                    token_type: TokenType::Int,
+                    literal: self.read_number(),
+                }
+            } else {
+                Token {
+                    token_type: TokenType::Illegal,
+                    literal: self.ch.to_string(),
+                }
+            }
+        },
+    };
+    self.read_char();
+    tok
   }
 }
 
@@ -50,18 +132,79 @@ mod tests {
 
   #[test]
   fn next_token() {
-      let input = "=+(){},;";
+    let input = "()";
+    let mut l = Lexer::new(input.to_string());
+    let t = l.next_token();
+    assert_eq!(TokenType::Lparen, t.token_type);
+  }
 
-      let mut test_input = HashMap::from([
-        (TokenType::Assign, '=')
-      ]);
+  #[test]
+  fn next_next_token() {
+    let input = "()";
+    let mut l = Lexer::new(input.to_string());
+    let _t = l.next_token();
+    let t = l.next_token();
+    assert_eq!(TokenType::Rparen, t.token_type);  
+  }
 
-      let l = Lexer::new(input.to_string());
+  #[test]
+  fn test_next_token() {
+    let input = "let five = 5;
+    let ten = 10;
+    
+    let add = fn(x, y) {
+      x + y;
+    );
+    
+    let result = add(five, ten);
+    ";
 
-      for (tt, lit) in test_input {
-        let tok = l.next_token();
-        assert_eq!(tok.token_type, tt);
-        assert_eq!(tok.literal, lit);
-      }
+    let test = HashMap::from([
+      (TokenType::Let, "let"),
+      (TokenType::Ident, "five"),
+      (TokenType::Assign, "="),
+      (TokenType::Int, "5"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::Let, "let"),
+      (TokenType::Ident, "ten"),
+      (TokenType::Assign, "="),
+      (TokenType::Int, "10"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::Let, "let"),
+      (TokenType::Ident, "add"),
+      (TokenType::Assign, "="),
+      (TokenType::Function, "fn"),
+      (TokenType::Lparen, "("),
+      (TokenType::Ident, "x"),
+      (TokenType::Comma, ","),
+      (TokenType::Ident, "y"),
+      (TokenType::Rparen, ")"),
+      (TokenType::Lbrace, "{"),
+      (TokenType::Ident, "x"),
+      (TokenType::Plus, "+"),
+      (TokenType::Ident, "y"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::Rbrace, "}"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::Let, "let"),
+      (TokenType::Ident, "result"),
+      (TokenType::Assign, "="),
+      (TokenType::Ident, "add"),
+      (TokenType::Lparen, "("),
+      (TokenType::Ident, "five"),
+      (TokenType::Comma, ","),
+      (TokenType::Ident, "ten"),
+      (TokenType::Rparen, ")"),
+      (TokenType::SemiColon, ";"),
+      (TokenType::Eof, "")
+    ]);
+
+    let mut lexer = Lexer::new(input.to_string());
+
+    for (expectedType, expectedLiteral) in &test {
+      let tok = lexer.next_token();
+      assert_eq!(tok.token_type, expectedType);
+      assert_eq!(tok.literal, expectedLiteral);
+    }
   }
 } 

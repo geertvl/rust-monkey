@@ -1,6 +1,6 @@
-use std::cmp::Eq;
 
-#[derive(Hash)]
+
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum TokenType {
   Illegal,
   Eof,
@@ -18,15 +18,31 @@ pub enum TokenType {
   SemiColon
 } 
 
-impl PartialEq for TokenType {
-  fn eq(&self, other: &Self) -> bool {
-    self == other
+impl PartialEq<TokenType> for Token {
+  fn eq(&self, other: &TokenType) -> bool {
+    self.token_type == *other
   }
 }
 
-impl Eq for TokenType {}
+impl PartialEq<Token> for TokenType {
+  fn eq(&self, other: &Token) -> bool {
+    *self == other.token_type
+  }
+}
 
 pub struct Token {
   pub token_type: TokenType,
-  pub literal: char,
+  pub literal: String,
+}
+
+pub struct Keywords {}
+
+impl Keywords {
+  pub fn lookup_ident(ident: &str) -> TokenType {
+    match ident {
+      "fn" => TokenType::Function,
+      "let" => TokenType::Let,
+      _ => TokenType::Ident,
+    }
+  }
 }
