@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum TokenType {
   Illegal,
   Eof,
@@ -55,6 +55,15 @@ impl fmt::Debug for Token {
       .field("literal", &self.token_type)
       .finish()
   }
+}
+
+impl Clone for Token {
+  fn clone(&self) -> Self {
+    Token {
+      token_type: self.token_type.clone(),
+      literal: self.literal.clone(),
+    }
+   }
 }
 
 pub struct Keywords {}

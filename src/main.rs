@@ -2,6 +2,8 @@ pub mod lexer;
 pub mod token;
 pub mod support;
 pub mod repl;
+pub mod ast;
+pub mod parser;
 
 use repl::start;
 
